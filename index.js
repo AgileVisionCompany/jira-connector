@@ -1,65 +1,66 @@
 "use strict";
 
 // Core packages
-var url = require('url');
+var url = require("url");
 
 // Npm packages
-var request = require('request');
+var request = require("request");
+var async = require("async");
 
 // Custom packages
-var applicationProperties = require('./api/application-properties');
-var attachment = require('./api/attachment');
-var auditing = require('./api/auditing');
-var auth = require('./api/auth');
-var avatar = require('./api/avatar');
-var backlog = require('./api/backlog');
-var board = require('./api/board');
-var comment = require('./api/comment');
-var component = require('./api/component');
-var customFieldOption = require('./api/customFieldOption');
-var dashboard = require('./api/dashboard');
-var errorStrings = require('./lib/error');
-var field = require('./api/field');
-var filter = require('./api/filter');
-var group = require('./api/group');
-var groupUserPicker = require('./api/groupUserPicker');
-var groups = require('./api/groups');
-var issue = require('./api/issue');
-var issueLink = require('./api/issueLink');
-var issueLinkType = require('./api/issueLinkType');
-var issueType = require('./api/issueType');
-var jql = require('./api/jql');
-var labels = require('./api/labels');
-var licenseRole = require('./api/licenseRole');
-var licenseValidator = require('./api/licenseValidator');
-var myPermissions = require('./api/myPermissions');
-var myPreferences = require('./api/myPreferences');
-var myself = require('./api/myself');
-var oauth_util = require('./lib/oauth_util');
-var password = require('./api/password');
-var permissions = require('./api/permissions');
-var permissionScheme = require('./api/permission-scheme');
-var priority = require('./api/priority');
-var project = require('./api/project');
-var projectCategory = require('./api/projectCategory');
-var projectValidate = require('./api/projectValidate');
-var reindex = require('./api/reindex');
-var resolution = require('./api/resolution');
-var roles = require('./api/roles');
-var screens = require('./api/screens');
-var search = require('./api/search');
-var securityLevel = require('./api/securityLevel');
-var serverInfo = require('./api/serverInfo');
-var settings = require('./api/settings');
-var sprint = require('./api/sprint');
-var status = require('./api/status');
-var statusCategory = require('./api/statusCategory');
-var user = require('./api/user');
-var version = require('./api/version');
-var webhook = require('./api/webhook');
-var workflow = require('./api/workflow');
-var workflowScheme = require('./api/workflowScheme');
-var worklog = require('./api/worklog');
+var applicationProperties = require("./api/application-properties");
+var attachment = require("./api/attachment");
+var auditing = require("./api/auditing");
+var auth = require("./api/auth");
+var avatar = require("./api/avatar");
+var backlog = require("./api/backlog");
+var board = require("./api/board");
+var comment = require("./api/comment");
+var component = require("./api/component");
+var customFieldOption = require("./api/customFieldOption");
+var dashboard = require("./api/dashboard");
+var errorStrings = require("./lib/error");
+var field = require("./api/field");
+var filter = require("./api/filter");
+var group = require("./api/group");
+var groupUserPicker = require("./api/groupUserPicker");
+var groups = require("./api/groups");
+var issue = require("./api/issue");
+var issueLink = require("./api/issueLink");
+var issueLinkType = require("./api/issueLinkType");
+var issueType = require("./api/issueType");
+var jql = require("./api/jql");
+var labels = require("./api/labels");
+var licenseRole = require("./api/licenseRole");
+var licenseValidator = require("./api/licenseValidator");
+var myPermissions = require("./api/myPermissions");
+var myPreferences = require("./api/myPreferences");
+var myself = require("./api/myself");
+var oauth_util = require("./lib/oauth_util");
+var password = require("./api/password");
+var permissions = require("./api/permissions");
+var permissionScheme = require("./api/permission-scheme");
+var priority = require("./api/priority");
+var project = require("./api/project");
+var projectCategory = require("./api/projectCategory");
+var projectValidate = require("./api/projectValidate");
+var reindex = require("./api/reindex");
+var resolution = require("./api/resolution");
+var roles = require("./api/roles");
+var screens = require("./api/screens");
+var search = require("./api/search");
+var securityLevel = require("./api/securityLevel");
+var serverInfo = require("./api/serverInfo");
+var settings = require("./api/settings");
+var sprint = require("./api/sprint");
+var status = require("./api/status");
+var statusCategory = require("./api/statusCategory");
+var user = require("./api/user");
+var version = require("./api/version");
+var webhook = require("./api/webhook");
+var workflow = require("./api/workflow");
+var workflowScheme = require("./api/workflowScheme");
+var worklog = require("./api/worklog");
 
 /**
  * Represents a client for the Jira REST API
@@ -143,329 +144,395 @@ var worklog = require('./api/worklog');
  *      Default - require('request').
  */
 
-var JiraClient = module.exports = function (config) {
-    if(!config.host) {
-        throw new Error(errorStrings.NO_HOST_ERROR);
-    }
-    this.host = config.host;
-    this.protocol = config.protocol ? config.protocol : 'https';
-    this.path_prefix = config.path_prefix ? config.path_prefix : '/';
-    this.port = config.port;
-    this.apiVersion = 2; // TODO Add support for other versions.
-    this.agileApiVersion = '1.0';
-    this.authApiVersion = '1';
-    this.webhookApiVersion = '1.0';
-    this.promise = config.promise || Promise;
-    this.requestLib = config.request || request;
-    this.rejectUnauthorized = config.rejectUnauthorized;
+var JiraClient = (module.exports = function(config) {
+  if (!config.host) {
+    throw new Error(errorStrings.NO_HOST_ERROR);
+  }
+  this.host = config.host;
+  this.protocol = config.protocol ? config.protocol : "https";
+  this.path_prefix = config.path_prefix ? config.path_prefix : "/";
+  this.port = config.port;
+  this.apiVersion = 2; // TODO Add support for other versions.
+  this.agileApiVersion = "1.0";
+  this.authApiVersion = "1";
+  this.webhookApiVersion = "1.0";
+  this.promise = config.promise || Promise;
+  this.requestLib = config.request || request;
+  this.rejectUnauthorized = config.rejectUnauthorized;
 
-    if (config.oauth) {
-        if (!config.oauth.consumer_key) {
-            throw new Error(errorStrings.NO_CONSUMER_KEY_ERROR);
-        } else if (!config.oauth.private_key) {
-            throw new Error(errorStrings.NO_PRIVATE_KEY_ERROR);
-        } else if (!config.oauth.token) {
-            throw new Error(errorStrings.NO_OAUTH_TOKEN_ERROR);
-        } else if (!config.oauth.token_secret) {
-            throw new Error(errorStrings.NO_OAUTH_TOKEN_SECRET_ERROR);
-        }
-
-        this.oauthConfig = config.oauth;
-        this.oauthConfig.signature_method = 'RSA-SHA1';
-
-    } else if (config.basic_auth) {
-        if (config.basic_auth.base64) {
-            this.basic_auth = {
-              base64: config.basic_auth.base64
-            }
-        } else {
-            if (!config.basic_auth.username) {
-                throw new Error(errorStrings.NO_USERNAME_ERROR);
-            } else if (!config.basic_auth.password) {
-                throw new Error(errorStrings.NO_PASSWORD_ERROR);
-            }
-
-            this.basic_auth = {
-                user: config.basic_auth.username,
-                pass: config.basic_auth.password
-            };
-        }
+  if (config.oauth) {
+    if (!config.oauth.consumer_key) {
+      throw new Error(errorStrings.NO_CONSUMER_KEY_ERROR);
+    } else if (!config.oauth.private_key) {
+      throw new Error(errorStrings.NO_PRIVATE_KEY_ERROR);
+    } else if (!config.oauth.token) {
+      throw new Error(errorStrings.NO_OAUTH_TOKEN_ERROR);
+    } else if (!config.oauth.token_secret) {
+      throw new Error(errorStrings.NO_OAUTH_TOKEN_SECRET_ERROR);
     }
 
-    if (config.cookie_jar) {
-        this.cookie_jar = config.cookie_jar;
+    this.oauthConfig = config.oauth;
+    this.oauthConfig.signature_method = "RSA-SHA1";
+  } else if (config.basic_auth) {
+    if (config.basic_auth.base64) {
+      this.basic_auth = {
+        base64: config.basic_auth.base64
+      };
+    } else {
+      if (!config.basic_auth.username) {
+        throw new Error(errorStrings.NO_USERNAME_ERROR);
+      } else if (!config.basic_auth.password) {
+        throw new Error(errorStrings.NO_PASSWORD_ERROR);
+      }
+
+      this.basic_auth = {
+        user: config.basic_auth.username,
+        pass: config.basic_auth.password
+      };
     }
-
-    this.applicationProperties = new applicationProperties(this);
-    this.attachment = new attachment(this);
-    this.auditing = new auditing(this);
-    this.auth = new auth(this);
-    this.avatar = new avatar(this);
-    this.backlog = new backlog(this);
-    this.board = new board(this);
-    this.comment = new comment(this);
-    this.component = new component(this);
-    this.customFieldOption = new customFieldOption(this);
-    this.dashboard = new dashboard(this);
-    this.field = new field(this);
-    this.filter = new filter(this);
-    this.group = new group(this);
-    this.groupUserPicker = new groupUserPicker(this);
-    this.groups = new groups(this);
-    this.issue = new issue(this);
-    this.issueLink = new issueLink(this);
-    this.issueLinkType = new issueLinkType(this);
-    this.issueType = new issueType(this);
-    this.jql = new jql(this);
-    this.labels = new labels(this);
-    this.licenseRole = new licenseRole(this);
-    this.licenseValidator = new licenseValidator(this);
-    this.myPermissions = new myPermissions(this);
-    this.myPreferences = new myPreferences(this);
-    this.myself = new myself(this);
-    this.password = new password(this);
-    this.permissions = new permissions(this);
-    this.permissionScheme = new permissionScheme(this);
-    this.priority = new priority(this);
-    this.project = new project(this);
-    this.projectCategory = new projectCategory(this);
-    this.projectValidate = new projectValidate(this);
-    this.reindex = new reindex(this);
-    this.resolution = new resolution(this);
-    this.roles = new roles(this);
-    this.screens = new screens(this);
-    this.search = new search(this);
-    this.securityLevel = new securityLevel(this);
-    this.serverInfo = new serverInfo(this);
-    this.settings = new settings(this);
-    this.sprint = new sprint(this);
-    this.status = new status(this);
-    this.statusCategory = new statusCategory(this);
-    this.user = new user(this);
-    this.version = new version(this);
-    this.webhook = new webhook(this);
-    this.workflow = new workflow(this);
-    this.workflowScheme = new workflowScheme(this);
-    this.worklog = new worklog(this);
-};
-
-(function () {
-
-    /**
-     * Simple utility to build a REST endpoint URL for the Jira API.
-     *
-     * @method buildURL
-     * @memberOf JiraClient#
-     * @param path The path of the URL without concern for the root of the REST API.
-     * @param forcedVersion Use this param to force a particular version
-     * @returns {string} The constructed URL.
-     */
-    this.buildURL = function (path, forcedVersion) {
-        var apiBasePath = this.path_prefix + 'rest/api/';
-        var version = forcedVersion || this.apiVersion;
-        var requestUrl = url.format({
-            protocol: this.protocol,
-            hostname: this.host,
-            port: this.port,
-            pathname: apiBasePath + version + path
-        });
-
-        return decodeURIComponent(requestUrl);
+  } else if (config.jwt_auth) {
+    this.jwt_auth = {
+      appToken: config.jwt_auth.token,
+      scope: config.jwt_auth.scope
+        .reduce(
+          (accumulator, currentValue) => accumulator + currentValue + " ",
+          ""
+        )
+        .trim()
     };
+  }
 
-    /**
-     * Simple utility to build a REST endpoint URL for the Jira Agile API.
-     *
-     * @method buildAgileURL
-     * @memberOf JiraClient#
-     * @param path The path of the URL without concern for the root of the REST API.
-     * @returns {string} The constructed URL.
-     */
-    this.buildAgileURL = function (path) {
-        var apiBasePath = this.path_prefix + 'rest/agile/';
-        var version = this.agileApiVersion;
-        var requestUrl = url.format({
-            protocol: this.protocol,
-            hostname: this.host,
-            port: this.port,
-            pathname: apiBasePath + version + path
-        });
+  if (config.cookie_jar) {
+    this.cookie_jar = config.cookie_jar;
+  }
 
-        return decodeURIComponent(requestUrl);
-    };
+  this.applicationProperties = new applicationProperties(this);
+  this.attachment = new attachment(this);
+  this.auditing = new auditing(this);
+  this.auth = new auth(this);
+  this.avatar = new avatar(this);
+  this.backlog = new backlog(this);
+  this.board = new board(this);
+  this.comment = new comment(this);
+  this.component = new component(this);
+  this.customFieldOption = new customFieldOption(this);
+  this.dashboard = new dashboard(this);
+  this.field = new field(this);
+  this.filter = new filter(this);
+  this.group = new group(this);
+  this.groupUserPicker = new groupUserPicker(this);
+  this.groups = new groups(this);
+  this.issue = new issue(this);
+  this.issueLink = new issueLink(this);
+  this.issueLinkType = new issueLinkType(this);
+  this.issueType = new issueType(this);
+  this.jql = new jql(this);
+  this.labels = new labels(this);
+  this.licenseRole = new licenseRole(this);
+  this.licenseValidator = new licenseValidator(this);
+  this.myPermissions = new myPermissions(this);
+  this.myPreferences = new myPreferences(this);
+  this.myself = new myself(this);
+  this.password = new password(this);
+  this.permissions = new permissions(this);
+  this.permissionScheme = new permissionScheme(this);
+  this.priority = new priority(this);
+  this.project = new project(this);
+  this.projectCategory = new projectCategory(this);
+  this.projectValidate = new projectValidate(this);
+  this.reindex = new reindex(this);
+  this.resolution = new resolution(this);
+  this.roles = new roles(this);
+  this.screens = new screens(this);
+  this.search = new search(this);
+  this.securityLevel = new securityLevel(this);
+  this.serverInfo = new serverInfo(this);
+  this.settings = new settings(this);
+  this.sprint = new sprint(this);
+  this.status = new status(this);
+  this.statusCategory = new statusCategory(this);
+  this.user = new user(this);
+  this.version = new version(this);
+  this.webhook = new webhook(this);
+  this.workflow = new workflow(this);
+  this.workflowScheme = new workflowScheme(this);
+  this.worklog = new worklog(this);
+});
 
-    /**
-     * Simple utility to build a REST endpoint URL for the Jira Auth API.
-     *
-     * @method buildAuthURL
-     * @memberOf JiraClient#
-     * @param path The path of the URL without concern for the root of the REST API.
-     * @returns {string} The constructed URL.
-     */
-    this.buildAuthURL = function (path) {
-        var apiBasePath = this.path_prefix + 'rest/auth/';
-        var version = this.authApiVersion;
-        var requestUrl = url.format({
-            protocol: this.protocol,
-            hostname: this.host,
-            port: this.port,
-            pathname: apiBasePath + version + path
-        });
+(function() {
+  /**
+   * Simple utility to build a REST endpoint URL for the Jira API.
+   *
+   * @method buildURL
+   * @memberOf JiraClient#
+   * @param path The path of the URL without concern for the root of the REST API.
+   * @param forcedVersion Use this param to force a particular version
+   * @returns {string} The constructed URL.
+   */
+  this.buildURL = function(path, forcedVersion) {
+    var apiBasePath = this.path_prefix + "rest/api/";
+    var version = forcedVersion || this.apiVersion;
+    var requestUrl = url.format({
+      protocol: this.protocol,
+      hostname: this.host,
+      port: this.port,
+      pathname: apiBasePath + version + path
+    });
 
-        return decodeURIComponent(requestUrl);
-    };
+    return decodeURIComponent(requestUrl);
+  };
 
-    /**
-     * Simple utility to build a REST endpoint URL for the Jira webhook API.
-     *
-     * @method buildWebhookURL
-     * @memberOf JiraClient#
-     * @param path The path of the URL without concern for the root of the REST API.
-     * @returns {string} The constructed URL.
-     */
-    this.buildWebhookURL = function (path) {
-        var apiBasePath = this.path_prefix + 'rest/webhooks/';
-        var version = this.webhookApiVersion;
-        var requestUrl = url.format({
-            protocol: this.protocol,
-            hostname: this.host,
-            port: this.port,
-            pathname: apiBasePath + version + path
-        });
+  /**
+   * Simple utility to build a REST endpoint URL for the Jira Agile API.
+   *
+   * @method buildAgileURL
+   * @memberOf JiraClient#
+   * @param path The path of the URL without concern for the root of the REST API.
+   * @returns {string} The constructed URL.
+   */
+  this.buildAgileURL = function(path) {
+    var apiBasePath = this.path_prefix + "rest/agile/";
+    var version = this.agileApiVersion;
+    var requestUrl = url.format({
+      protocol: this.protocol,
+      hostname: this.host,
+      port: this.port,
+      pathname: apiBasePath + version + path
+    });
 
-        return decodeURIComponent(requestUrl);
-    };
+    return decodeURIComponent(requestUrl);
+  };
 
-    /**
-     * Make a request to the Jira API and call back with it's response.
-     *
-     * @method makeRequest
-     * @memberOf JiraClient#
-     * @param options The request options.
-     * @param [callback] Called with the APIs response.
-     * @param {string} [successString] If supplied, this is reported instead of the response body.
-     * @return {Promise} Resolved with APIs response or rejected with error
-     */
-    this.makeRequest = function (options, callback, successString) {
-        let requestLib = this.requestLib;
-        options.rejectUnauthorized = this.rejectUnauthorized;
+  /**
+   * Simple utility to build a REST endpoint URL for the Jira Auth API.
+   *
+   * @method buildAuthURL
+   * @memberOf JiraClient#
+   * @param path The path of the URL without concern for the root of the REST API.
+   * @returns {string} The constructed URL.
+   */
+  this.buildAuthURL = function(path) {
+    var apiBasePath = this.path_prefix + "rest/auth/";
+    var version = this.authApiVersion;
+    var requestUrl = url.format({
+      protocol: this.protocol,
+      hostname: this.host,
+      port: this.port,
+      pathname: apiBasePath + version + path
+    });
 
-        if (this.oauthConfig) {
-            options.oauth = this.oauthConfig;
-        } else if (this.basic_auth) {
-            if (this.basic_auth.base64) {
-              if (!options.headers) {
-                options.headers = {}
+    return decodeURIComponent(requestUrl);
+  };
+
+  /**
+   * Simple utility to build a REST endpoint URL for the Jira webhook API.
+   *
+   * @method buildWebhookURL
+   * @memberOf JiraClient#
+   * @param path The path of the URL without concern for the root of the REST API.
+   * @returns {string} The constructed URL.
+   */
+  this.buildWebhookURL = function(path) {
+    var apiBasePath = this.path_prefix + "rest/webhooks/";
+    var version = this.webhookApiVersion;
+    var requestUrl = url.format({
+      protocol: this.protocol,
+      hostname: this.host,
+      port: this.port,
+      pathname: apiBasePath + version + path
+    });
+
+    return decodeURIComponent(requestUrl);
+  };
+
+  /**
+   * Make a request to the Jira API and call back with it's response.
+   *
+   * @method makeRequest
+   * @memberOf JiraClient#
+   * @param options The request options.
+   * @param [callback] Called with the APIs response.
+   * @param {string} [successString] If supplied, this is reported instead of the response body.
+   * @return {Promise} Resolved with APIs response or rejected with error
+   */
+  this.makeRequest = function(options, callback, successString) {
+    let requestLib = this.requestLib;
+    options.rejectUnauthorized = this.rejectUnauthorized;
+    if (!options.headers) {
+      options.headers = {};
+    }
+    async.waterfall(
+      [
+        next => {
+          if (!this.jwt_auth) {
+            if (this.oauthConfig) {
+              options.oauth = this.oauthConfig;
+            } else if (this.basic_auth) {
+              if (this.basic_auth.base64) {
+                options.headers["Authorization"] =
+                  "Basic " + this.basic_auth.base64;
+              } else {
+                options.auth = this.basic_auth;
               }
-              options.headers['Authorization'] = 'Basic ' + this.basic_auth.base64
+            }
+            if (this.cookie_jar) {
+              options.jar = this.cookie_jar;
+            }
+            next(null, options);
+          } else {
+            if (
+              !this.jwt_auth.accessToken ||
+              this.jwt_auth.accessToken.exp - 5 < new Date().getTime() / 1000
+            ) {
+              const accessTokenRequestOptions = {
+                method: "POST",
+                json: true,
+                followAllRedirects: true,
+                headers: {
+                  "Content-type": "application/x-www-form-urlencoded"
+                },
+                form: {
+                  grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                  scope: this.jwt_auth.scope,
+                  assertion: this.jwt_auth.appToken
+                },
+                uri: "https://auth.atlassian.io/oauth2/token"
+              };
+              requestLib(
+                accessTokenRequestOptions,
+                function(err, response, body) {
+                  if (err || response.statusCode.toString()[0] != 2) {
+                    next(err ? err : body, response);
+                  } else if (typeof body == "string") {
+                    try {
+                      body = JSON.parse(body);
+                    } catch (jsonErr) {
+                      next(jsonErr, response);
+                    }
+                  } else {
+                    this.jwt_auth.accessToken = {
+                      token: body.access_token,
+                      exp: body.expires_in
+                    };
+                    options.headers["Authorization"] = `Bearer ${
+                      body.access_token
+                    }`;
+                    next(null, options);
+                  }
+                }.bind(this)
+              );
             } else {
-              options.auth = this.basic_auth;
+              options.headers["Authorization"] = `Bearer ${
+                this.jwt_auth.accessToken.token
+              }`;
+              next(null, options);
             }
+          }
         }
-        if (this.cookie_jar) {
-            options.jar = this.cookie_jar;
-        }
+      ],
+      (err, options) => {
+        if (err) {
+          return callback(err, null, options);
+        } else {
+          if (callback) {
+            requestLib(options, function(err, response, body) {
+              if (err || response.statusCode.toString()[0] != 2) {
+                return callback(err ? err : body, null, response);
+              }
 
-        if (callback) {
-            requestLib(options, function (err, response, body) {
-                if (err || response.statusCode.toString()[0] != 2) {
-                    return callback(err ? err : body, null, response);
-                }
-
-            if (typeof body == 'string') {
+              if (typeof body == "string") {
                 try {
-                    body = JSON.parse(body);
+                  body = JSON.parse(body);
                 } catch (jsonErr) {
-                    return callback(jsonErr, null, response);
+                  return callback(jsonErr, null, response);
                 }
-            }
-
-                return callback(null, successString ? successString : body, response);
+              }
+              return callback(
+                null,
+                successString ? successString : body,
+                response
+              );
             });
-        } else if (this.promise) {
-            return new this.promise(function (resolve, reject) {
+          } else if (this.promise) {
+            return new this.promise(function(resolve, reject) {
+              var req = requestLib(options);
+              var requestObj = null;
 
-                var req = requestLib(options);
-                var requestObj = null;
+              req.on("request", function(request) {
+                requestObj = request;
+              });
 
-                req.on('request', function(request) {
-                  requestObj = request;
-                });
+              req.on("response", function(response) {
+                // Saving error
+                var error = response.statusCode.toString()[0] !== "2";
 
-                req.on('response', function(response) {
+                // Collecting data
+                var body = [];
+                var push = body.push.bind(body);
+                response.on("data", push);
 
-                    // Saving error
-                    var error = response.statusCode.toString()[0] !== '2';
+                // Data collected
+                response.on("end", function() {
+                  var result = body.join("");
 
-                    // Collecting data
-                    var body = [];
-                    var push = body.push.bind(body);
-                    response.on('data', push);
+                  // Parsing JSON
+                  if (result[0] === "[" || result[0] === "{") {
+                    try {
+                      result = JSON.parse(result);
+                    } catch (e) {
+                      // nothing to do
+                    }
+                  }
 
-                    // Data collected
-                    response.on('end', function () {
-
-                        var result = body.join('');
-
-                        // Parsing JSON
-                        if (result[0] === '[' || result[0] === '{') {
-                            try {
-                                result = JSON.parse(result);
-                            } catch(e) {
-                                // nothing to do
-                            }
-                        }
-
-                        if (error) {
-                            response.body = result;
-                            if (options.debug) {
-                              reject({
-                                result: JSON.stringify(response),
-                                debug: {
-                                  options: options,
-                                  request: {
-                                    headers: requestObj._headers,
-                                  },
-                                  response: {
-                                    headers: response.headers,
-                                  },
-                                }
-                              });
-                            } else {
-                              reject(JSON.stringify(response));
-                            }
-                            return;
-                        }
-
-                      if (options.debug) {
-                        resolve({
-                          result,
-                          debug: {
-                            options: options,
-                            request: {
-                              headers: requestObj._headers,
-                            },
-                            response: {
-                              headers: response.headers,
-                            },
+                  if (error) {
+                    response.body = result;
+                    if (options.debug) {
+                      reject({
+                        result: JSON.stringify(response),
+                        debug: {
+                          options: options,
+                          request: {
+                            headers: requestObj._headers
+                          },
+                          response: {
+                            headers: response.headers
                           }
-                        });
-                      } else {
-                        resolve(result);
+                        }
+                      });
+                    } else {
+                      reject(JSON.stringify(response));
+                    }
+                    return;
+                  }
+
+                  if (options.debug) {
+                    resolve({
+                      result,
+                      debug: {
+                        options: options,
+                        request: {
+                          headers: requestObj._headers
+                        },
+                        response: {
+                          headers: response.headers
+                        }
                       }
                     });
-
+                  } else {
+                    resolve(result);
+                  }
                 });
+              });
 
-                req.on('error', reject);
-
+              req.on("error", reject);
             });
+          }
         }
+      }
+    );
+  };
+}.call(JiraClient.prototype));
 
-    };
-
-}).call(JiraClient.prototype);
-
-JiraClient.oauth_util = require('./lib/oauth_util');
+JiraClient.oauth_util = require("./lib/oauth_util");
 
 exports.oauth_util = oauth_util;

@@ -15,13 +15,21 @@
   ],
   "main": "./index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "eslint --fix ./*.js"
   },
   "author": "Caleb Brinkman <floralvikings@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "async": "^2.6.1",
     "oauth": "^0.9.12",
     "request": "^2.83.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.13.0",
+    "eslint-config-prettier": "^4.0.0",
+    "eslint-plugin-prettier": "^3.0.1",
+    "prettier": "^1.16.4"
   },
   "repository": {
     "type": "git",
